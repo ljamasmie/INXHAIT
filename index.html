@@ -272,6 +272,10 @@ footer.meta code{background:var(--surface-alt);padding:1px 5px;border-radius:4px
         <select id="fComercio"><option value="">Todos</option></select>
       </div>
       <div class="field">
+        <label for="fCodigoGC">Código GC Dcanje</label>
+        <input id="fCodigoGC" type="text" placeholder="Buscar código..." autocomplete="off">
+      </div>
+      <div class="field">
         <label for="fEstado">Estado</label>
         <select id="fEstado">
           <option value="">Todos</option>
@@ -305,12 +309,13 @@ footer.meta code{background:var(--surface-alt);padding:1px 5px;border-radius:4px
             <th data-sort="valor">Valor <span class="arrow">▾</span></th>
             <th data-sort="fechaEnvio">Fecha envío <span class="arrow">▾</span></th>
             <th data-sort="comercio">Comercio <span class="arrow">▾</span></th>
+            <th data-sort="codigoGC">Código GC Dcanje <span class="arrow">▾</span></th>
             <th data-sort="fechaEntrega">Fecha de entrega <span class="arrow">▾</span></th>
             <th>Estado</th>
           </tr>
         </thead>
         <tbody id="tbody">
-          <tr><td colspan="9"><div class="empty-state"><div class="big">⏳</div>Cargando datos desde Google Sheets…</div></td></tr>
+          <tr><td colspan="10"><div class="empty-state"><div class="big">⏳</div>Cargando datos desde Google Sheets…</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -476,7 +481,8 @@ const COLUMN_ALIASES = {
   local: ['local'],
   valor: ['valor','monto'],
   fechaEnvio: ['fecha envio','fecha de envio','envio','fecha envío','fecha de envío'],
-  comercio: ['comercio']
+  comercio: ['comercio'],
+  codigoGC: ['codigo gc dcanje','código gc dcanje','codigo gc','gc dcanje','cod gc dcanje','codigo de canje','codigo canje']
 };
 
 /* =====================================================================
@@ -766,6 +772,7 @@ const Transform = {
       const nombreText = this.cleanText(this.cellRaw(row, colMap.nombre));
       const localText = this.cleanText(this.cellRaw(row, colMap.local));
       const comercioText = this.cleanText(this.cellRaw(row, colMap.comercio));
+      const codigoGCText = this.cleanText(this.cellRaw(row, colMap.codigoGC));
       const valor = this.parseValor(this.cellRaw(row, colMap.valor));
       const fechaEnvio = this.parseGvizDate(this.cellRaw(row, colMap.fechaEnvio));
 
@@ -792,6 +799,8 @@ const Transform = {
         valor: valor,
         fechaEnvio: fechaEnvio,
         comercio: comercioText,
+        codigoGC: codigoGCText,
+        codigoGCNorm: codigoGCText.replace(/[.\-\s]/g,'').toLowerCase(),
         fechaEntrega: fechaEntrega,
         estado: estado,
         progress: progress,
@@ -846,6 +855,7 @@ function applyFiltersAndRender(){
   const doc = normDocInput(document.getElementById('docSearch').value);
   const local = document.getElementById('fLocal').value;
   const comercio = document.getElementById('fComercio').value;
+  const codigoGC = normDocInput(document.getElementById('fCodigoGC').value);
   const estado = document.getElementById('fEstado').value;
   const desde = document.getElementById('fEnvioDesde').value;
   const hasta = document.getElementById('fEnvioHasta').value;
@@ -854,6 +864,7 @@ function applyFiltersAndRender(){
   if(doc) rows = rows.filter(r => r.docNorm.includes(doc));
   if(local) rows = rows.filter(r => r.local === local);
   if(comercio) rows = rows.filter(r => r.comercio === comercio);
+  if(codigoGC) rows = rows.filter(r => r.codigoGCNorm.includes(codigoGC));
   if(estado) rows = rows.filter(r => r.estado === estado);
   if(desde){ const dd = new Date(desde+'T00:00:00'); rows = rows.filter(r => r.fechaEnvio && r.fechaEnvio >= dd); }
   if(hasta){ const hh = new Date(hasta+'T23:59:59'); rows = rows.filter(r => r.fechaEnvio && r.fechaEnvio <= hh); }
@@ -906,7 +917,7 @@ function renderTable(){
   const pageRows = State.filtered.slice(startIdx, startIdx + State.pageSize);
 
   if(total === 0){
-    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="big">🔍</div>No hay registros que coincidan con los filtros actuales.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><div class="big">🔍</div>No hay registros que coincidan con los filtros actuales.</div></td></tr>`;
   } else {
     tbody.innerHTML = pageRows.map(r => {
       const warnFlag = r.warnings.length ? `<span class="row-flag" title="${r.warnings.join(' · ')}">⚠</span>` : '';
@@ -921,6 +932,7 @@ function renderTable(){
         <td class="money">${fmtMoney(r.valor)}</td>
         <td class="mono">${fmtDate(r.fechaEnvio)}</td>
         <td>${escapeHtml(r.comercio) || '—'}</td>
+        <td class="mono">${escapeHtml(r.codigoGC) || '—'}</td>
         <td><div class="deadline-cell"><span class="mono">${fmtDateH(r.fechaEntrega)}</span>${r.fechaEntrega ? `<span class="progress-track"><span class="${barClass}" style="width:${Math.round(r.progress*100)}%"></span></span>` : ''}</div></td>
         <td>${statusBadge(r.estado)}</td>
       </tr>`;
@@ -1064,13 +1076,15 @@ document.getElementById('btnToggleSecondary').onclick = (e) => {
 };
 document.getElementById('btnClearDoc').onclick = () => { document.getElementById('docSearch').value=''; applyFiltersAndRender(); };
 document.getElementById('btnClearSecondary').onclick = () => {
-  ['fLocal','fComercio','fEstado','fEnvioDesde','fEnvioHasta'].forEach(id => document.getElementById(id).value='');
+  ['fLocal','fComercio','fCodigoGC','fEstado','fEnvioDesde','fEnvioHasta'].forEach(id => document.getElementById(id).value='');
   applyFiltersAndRender();
 };
 
 let debounceT;
 document.getElementById('docSearch').addEventListener('input', () => { clearTimeout(debounceT); debounceT = setTimeout(applyFiltersAndRender, 180); });
 ['fLocal','fComercio','fEstado','fEnvioDesde','fEnvioHasta'].forEach(id => document.getElementById(id).addEventListener('change', applyFiltersAndRender));
+let debounceCodigoT;
+document.getElementById('fCodigoGC').addEventListener('input', () => { clearTimeout(debounceCodigoT); debounceCodigoT = setTimeout(applyFiltersAndRender, 180); });
 
 document.querySelectorAll('thead th[data-sort]').forEach(th => {
   th.onclick = () => {
