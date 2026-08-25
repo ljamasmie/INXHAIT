@@ -358,7 +358,18 @@ footer.meta code{background:var(--surface-alt);padding:1px 5px;border-radius:4px
     </div>
 
     <div class="config-section">
-      <h3>Fuente de datos</h3>
+      <h3>Fuente de datos <span id="lockIcon" style="font-size:11px;">🔒</span></h3>
+
+      <div id="fuenteLockedView">
+        <div class="hint" style="margin-bottom:10px;">Esta sección está protegida. Ingresa la clave para ver o editar la conexión a la hoja.</div>
+        <div class="add-holiday">
+          <input id="fuentePasswordInput" type="password" placeholder="Clave" style="flex:1;">
+          <button class="btn" id="btnUnlockFuente">Desbloquear</button>
+        </div>
+        <div class="hint" id="fuenteUnlockError" style="color:var(--danger); display:none;">Clave incorrecta.</div>
+      </div>
+
+      <div id="fuenteUnlockedView" style="display:none;">
       <div class="config-grid">
         <div class="field">
           <label>Modo de conexión</label>
@@ -387,6 +398,7 @@ footer.meta code{background:var(--surface-alt);padding:1px 5px;border-radius:4px
 
       <div class="config-grid" style="margin-top:10px;">
         <div class="field half"><label>Auto-actualizar cada (min)</label><input id="cfgRefresh" type="number" min="1" step="1"></div>
+      </div>
       </div>
     </div>
 
@@ -1075,8 +1087,12 @@ function renderDiagnostics(){
   el.innerHTML = rows + headersLine;
 }
 
-function openConfigForm(){
-  renderDiagnostics();
+// Clave para ver/editar "Fuente de datos". Solo disuade a usuarios
+// casuales — al ser una app 100% cliente, no es seguridad real (alguien
+// revisando el código fuente igual podría ver la configuración interna).
+const FUENTE_PASSWORD = 'inxhait2026';
+
+function populateFuenteFields(){
   document.getElementById('cfgSourceMode').value = Config.sourceMode;
   toggleSourceBlocks(Config.sourceMode);
   document.getElementById('cfgAppsScriptUrl').value = Config.appsScriptUrl;
@@ -1084,6 +1100,34 @@ function openConfigForm(){
   document.getElementById('cfgSheetUrl').value = Config.sheetId;
   document.getElementById('cfgGid').value = Config.gid;
   document.getElementById('cfgRefresh').value = Config.refreshMinutes;
+}
+
+function lockFuenteSection(){
+  document.getElementById('fuenteLockedView').style.display = 'block';
+  document.getElementById('fuenteUnlockedView').style.display = 'none';
+  document.getElementById('lockIcon').textContent = '🔒';
+  document.getElementById('fuentePasswordInput').value = '';
+  document.getElementById('fuenteUnlockError').style.display = 'none';
+}
+
+document.getElementById('btnUnlockFuente').onclick = () => {
+  const val = document.getElementById('fuentePasswordInput').value;
+  if(val === FUENTE_PASSWORD){
+    document.getElementById('fuenteLockedView').style.display = 'none';
+    document.getElementById('fuenteUnlockedView').style.display = 'block';
+    document.getElementById('lockIcon').textContent = '🔓';
+    populateFuenteFields();
+  } else {
+    document.getElementById('fuenteUnlockError').style.display = 'block';
+  }
+};
+document.getElementById('fuentePasswordInput').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') document.getElementById('btnUnlockFuente').click();
+});
+
+function openConfigForm(){
+  renderDiagnostics();
+  lockFuenteSection();
   document.getElementById('cfgIdPrefix').value = Config.idPrefix;
   document.getElementById('cfgMinFecha').value = Config.minFechaEnvio;
   document.getElementById('cfgWorkStart').value = Config.workStartHour;
@@ -1149,14 +1193,19 @@ document.getElementById('btnAddHoliday').onclick = () => {
 };
 
 document.getElementById('btnApplyConfig').onclick = () => {
-  Config.sourceMode = document.getElementById('cfgSourceMode').value;
-  Config.appsScriptUrl = document.getElementById('cfgAppsScriptUrl').value.trim();
-  Config.appsScriptToken = document.getElementById('cfgAppsScriptToken').value.trim();
-  const rawSheet = document.getElementById('cfgSheetUrl').value.trim();
-  Config.sheetId = DataSource.extractSheetId(rawSheet);
-  const gidFromUrl = DataSource.extractGid(rawSheet);
-  Config.gid = gidFromUrl || document.getElementById('cfgGid').value.trim() || '0';
-  Config.refreshMinutes = Math.max(1, +document.getElementById('cfgRefresh').value || 10);
+  const fuenteUnlocked = document.getElementById('fuenteUnlockedView').style.display !== 'none';
+  if(fuenteUnlocked){
+    Config.sourceMode = document.getElementById('cfgSourceMode').value;
+    Config.appsScriptUrl = document.getElementById('cfgAppsScriptUrl').value.trim();
+    Config.appsScriptToken = document.getElementById('cfgAppsScriptToken').value.trim();
+    const rawSheet = document.getElementById('cfgSheetUrl').value.trim();
+    Config.sheetId = DataSource.extractSheetId(rawSheet);
+    const gidFromUrl = DataSource.extractGid(rawSheet);
+    Config.gid = gidFromUrl || document.getElementById('cfgGid').value.trim() || '0';
+    Config.refreshMinutes = Math.max(1, +document.getElementById('cfgRefresh').value || 10);
+  }
+  // Nota: si la sección "Fuente de datos" sigue bloqueada, Config.sourceMode/
+  // sheetId/gid/refreshMinutes NO se tocan — así no se resetean por accidente.
   Config.idPrefix = document.getElementById('cfgIdPrefix').value.trim();
   Config.minFechaEnvio = document.getElementById('cfgMinFecha').value.trim();
   Config.workStartHour = +document.getElementById('cfgWorkStart').value;
