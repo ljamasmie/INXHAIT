@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Entregas · UIIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS DE DISEÑO
+   ============================================================ */
+:root{
+  --bg:#F4F6F8;
+  --surface:#FFFFFF;
+  --surface-alt:#EEF1F5;
+  --border:#DFE4EA;
+  --border-strong:#C7CED8;
+  --text-primary:#151C2C;
+  --text-secondary:#5B6472;
+  --text-muted:#8790A0;
+  --accent:#1F4E6B;
+  --accent-strong:#123047;
+  --accent-soft:#E6EEF3;
+  --gold:#B8862B;
+  --gold-soft:#F7EFDD;
+  --success:#1C8A5B;
+  --success-soft:#E4F5EC;
+  --warning:#C4780B;
+  --warning-soft:#FBEEDB;
+  --danger:#C23B3B;
+  --danger-soft:#FBE8E8;
+  --neutral:#6B7280;
+  --neutral-soft:#EEF0F3;
+  --radius:10px;
+  --radius-sm:6px;
+  --shadow-sm:0 1px 2px rgba(21,28,44,0.06);
+  --shadow-md:0 4px 16px rgba(21,28,44,0.08);
+  --font-display:'Space Grotesk',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text-primary);font-family:var(--font-body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+::selection{background:var(--accent-soft);}
+button{font-family:inherit;cursor:pointer;}
+input,select{font-family:inherit;}
+
+/* ============================================================
+   LAYOUT GENERAL
+   ============================================================ */
+#app{max-width:1400px;margin:0 auto;padding:20px 24px 64px;}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;}
+.topbar-title{display:flex;align-items:center;gap:12px;}
+.topbar-title .mark{width:38px;height:38px;border-radius:9px;background:linear-gradient(155deg,var(--accent),var(--accent-strong));display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.5px;box-shadow:var(--shadow-sm);}
+.topbar-title h1{font-family:var(--font-display);font-size:20px;font-weight:700;margin:0;letter-spacing:-.2px;}
+.topbar-title p{margin:1px 0 0;font-size:12.5px;color:var(--text-secondary);}
+
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.status-chip{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-secondary);background:var(--surface);border:1px solid var(--border);padding:7px 12px;border-radius:20px;}
+.status-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--success);flex:none;}
+.status-chip.err .dot{background:var(--danger);}
+.status-chip.loading .dot{background:var(--warning);animation:pulse 1.1s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+.btn{border:1px solid var(--border-strong);background:var(--surface);color:var(--text-primary);padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+.btn:hover{border-color:var(--accent);color:var(--accent-strong);background:var(--accent-soft);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:var(--accent-strong);border-color:var(--accent-strong);color:#fff;}
+.btn.icon-only{padding:8px 10px;}
+.btn svg{width:14px;height:14px;}
+.btn.spin svg{animation:spin 0.9s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.banner{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:16px;border:1px solid;}
+.banner.error{background:var(--danger-soft);border-color:#EFC3C3;color:#7A2626;}
+.banner.warn{background:var(--warning-soft);border-color:#EFD7A9;color:#7A4E06;}
+.banner strong{font-weight:600;}
+.banner .close{margin-left:auto;background:none;border:none;color:inherit;opacity:.6;font-size:16px;line-height:1;}
+.banner .close:hover{opacity:1;}
+
+/* ============================================================
+   KPIs
+   ============================================================ */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+@media (max-width:1100px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+@media (max-width:680px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow-sm);}
+.kpi.k-success{border-left-color:var(--success);}
+.kpi.k-danger{border-left-color:var(--danger);}
+.kpi.k-gold{border-left-color:var(--gold);}
+.kpi .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);font-weight:600;margin-bottom:6px;}
+.kpi .kpi-value{font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--text-primary);}
+.kpi .kpi-sub{font-size:11.5px;color:var(--text-secondary);margin-top:2px;}
+
+/* ============================================================
+   FILTROS
+   ============================================================ */
+.filters{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+.filters-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;}
+.field input, .field select{border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;background:var(--surface);min-width:140px;color:var(--text-primary);}
+.field input:focus, .field select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent);}
+.field.grow{flex:1;min-width:220px;}
+.field.grow input{width:100%;font-family:var(--font-mono);}
+.field.grow{position:relative;}
+.field.grow svg{position:absolute;left:10px;top:32px;width:14px;height:14px;color:var(--text-muted);}
+.field.grow input{padding-left:30px;}
+.filters-secondary{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);}
+.results-line{font-size:12px;color:var(--text-secondary);margin-top:10px;}
+.results-line b{color:var(--text-primary);font-family:var(--font-mono);}
+
+/* ============================================================
+   TABLA
+   ============================================================ */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);}
+.table-scroll{overflow-x:auto;}
+table{border-collapse:collapse;width:100%;min-width:960px;}
+thead th{position:sticky;top:0;background:var(--surface-alt);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-secondary);font-weight:600;padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;}
+thead th:hover{color:var(--accent-strong);}
+thead th .arrow{opacity:.4;margin-left:4px;font-size:10px;}
+thead th.active .arrow{opacity:1;color:var(--accent);}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;white-space:nowrap;color:var(--text-primary);}
+tbody tr:hover{background:var(--surface-alt);}
+tbody tr:last-child td{border-bottom:none;}
+.mono{font-family:var(--font-mono);font-size:12.5px;}
+.id-cell{color:var(--accent-strong);font-weight:600;}
+.money{font-family:var(--font-mono);font-weight:600;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600;}
+.badge .dot{width:6px;height:6px;border-radius:50%;}
+.badge.plazo{background:var(--success-soft);color:#0F5C3D;}
+.badge.plazo .dot{background:var(--success);}
+.badge.vencido{background:var(--danger-soft);color:#8A2A2A;}
+.badge.vencido .dot{background:var(--danger);}
+.badge.pendiente{background:var(--neutral-soft);color:#464C57;}
+.badge.pendiente .dot{background:var(--neutral);}
+.deadline-cell{display:flex;flex-direction:column;gap:4px;}
+.progress-track{height:3px;width:74px;background:var(--border);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--success);}
+.progress-fill.warn{background:var(--warning);}
+.progress-fill.over{background:var(--danger);}
+.empty-state{padding:56px 20px;text-align:center;color:var(--text-secondary);}
+.empty-state .big{font-size:28px;margin-bottom:8px;}
+.row-flag{color:var(--warning);cursor:help;margin-left:4px;}
+
+.pagination{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.pagination .pg-info{font-size:12px;color:var(--text-secondary);}
+.pagination .pg-controls{display:flex;align-items:center;gap:6px;}
+.pg-btn{border:1px solid var(--border-strong);background:var(--surface);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;color:var(--text-primary);}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed;}
+.pg-btn:not(:disabled):hover{border-color:var(--accent);color:var(--accent-strong);}
+.pg-select{border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:6px 8px;font-size:12px;}
+
+/* ============================================================
+   PANEL DE CONFIGURACIÓN (slide-over)
+   ============================================================ */
+.overlay{position:fixed;inset:0;background:rgba(21,28,44,0.35);opacity:0;pointer-events:none;transition:.2s;z-index:40;}
+.overlay.open{opacity:1;pointer-events:auto;}
+.config-panel{position:fixed;top:0;right:0;height:100%;width:420px;max-width:92vw;background:var(--surface);box-shadow:-8px 0 30px rgba(21,28,44,.18);transform:translateX(100%);transition:.25s cubic-bezier(.4,0,.2,1);z-index:41;display:flex;flex-direction:column;}
+.config-panel.open{transform:translateX(0);}
+.config-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.config-head h2{font-family:var(--font-display);font-size:16px;margin:0;}
+.config-body{padding:18px 20px;overflow-y:auto;flex:1;}
+.config-section{margin-bottom:22px;}
+.config-section h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);font-weight:700;margin:0 0 10px;}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.config-grid .field{grid-column:span 2;}
+.config-grid .field.half{grid-column:span 1;}
+.config-panel .field label{font-size:11px;}
+.config-panel input, .config-panel select{width:100%;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px 10px;font-size:13px;}
+.hint{font-size:11.5px;color:var(--text-muted);margin-top:4px;line-height:1.5;}
+.days-picker{display:flex;gap:6px;flex-wrap:wrap;}
+.day-chip{border:1px solid var(--border-strong);border-radius:20px;padding:5px 10px;font-size:11.5px;background:var(--surface);}
+.day-chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+.holiday-list{border:1px solid var(--border);border-radius:var(--radius-sm);max-height:220px;overflow-y:auto;}
+.holiday-row{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;font-size:12.5px;border-bottom:1px solid var(--border);}
+.holiday-row:last-child{border-bottom:none;}
+.holiday-row .hdate{font-family:var(--font-mono);color:var(--accent-strong);font-weight:600;width:78px;flex:none;}
+.holiday-row .hname{flex:1;color:var(--text-secondary);}
+.holiday-row button{background:none;border:none;color:var(--danger);font-size:15px;line-height:1;padding:0 4px;}
+.add-holiday{display:flex;gap:6px;margin-top:8px;}
+.add-holiday input{flex:1;}
+.config-foot{padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px;}
+.config-foot .btn{flex:1;justify-content:center;}
+.close-x{background:none;border:none;font-size:20px;color:var(--text-secondary);line-height:1;padding:4px;}
+.close-x:hover{color:var(--text-primary);}
+
+footer.meta{margin-top:26px;font-size:11.5px;color:var(--text-muted);text-align:center;line-height:1.7;}
+footer.meta code{background:var(--surface-alt);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);}
+
+@media (max-width:640px){
+  .kpi .kpi-value{font-size:18px;}
+  .topbar-title h1{font-size:17px;}
+  table{min-width:820px;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="topbar-title">
+      <div class="mark">UIIO</div>
+      <div>
+        <h1>Dashboard de Entregas</h1>
+        <p id="lastUpdateLine">Sin sincronizar todavía</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span id="statusChip" class="status-chip"><span class="dot"></span><span id="statusText">Inactivo</span></span>
+      <button class="btn" id="btnRefresh" title="Actualizar datos ahora">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
+        Actualizar datos
+      </button>
+      <button class="btn icon-only" id="btnConfig" title="Configuración">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.32.44.55.8.6.14.02.28.03.42.03H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="bannerHost"></div>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Total registros (UIIO)</div>
+      <div class="kpi-value" id="kpiTotal">–</div>
+      <div class="kpi-sub">en la planilla fuente</div>
+    </div>
+    <div class="kpi k-gold">
+      <div class="kpi-label">Registros filtrados</div>
+      <div class="kpi-value" id="kpiFiltered">–</div>
+      <div class="kpi-sub" id="kpiFilteredSub">sin filtros aplicados</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Valor total (filtrado)</div>
+      <div class="kpi-value" id="kpiValue">–</div>
+      <div class="kpi-sub">suma de la columna Valor</div>
+    </div>
+    <div class="kpi k-success">
+      <div class="kpi-label">Dentro de plazo</div>
+      <div class="kpi-value" id="kpiOnTime">–</div>
+      <div class="kpi-sub">antes de 72h hábiles</div>
+    </div>
+    <div class="kpi k-danger">
+      <div class="kpi-label">Vencidas</div>
+      <div class="kpi-value" id="kpiOverdue">–</div>
+      <div class="kpi-sub">superaron 72h hábiles</div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="filters-row">
+      <div class="field grow">
+        <label for="docSearch">Buscar por Doc. de Identificación</label>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="docSearch" type="text" placeholder="Ej: 0102030405 (búsqueda parcial o exacta)" autocomplete="off">
+      </div>
+      <button class="btn" id="btnClearDoc">Limpiar filtro</button>
+      <button class="btn" id="btnToggleSecondary">Más filtros ▾</button>
+    </div>
+    <div class="filters-secondary" id="secondaryFilters" style="display:none;">
+      <div class="field">
+        <label for="fLocal">Local</label>
+        <select id="fLocal"><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label for="fComercio">Comercio</label>
+        <select id="fComercio"><option value="">Todos</option></select>
+      </div>
+      <div class="field">
+        <label for="fEstado">Estado</label>
+        <select id="fEstado">
+          <option value="">Todos</option>
+          <option value="En plazo">En plazo</option>
+          <option value="Vencido">Vencido</option>
+          <option value="Pendiente">Pendiente (dato incompleto)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fEnvioDesde">Envío desde</label>
+        <input id="fEnvioDesde" type="date">
+      </div>
+      <div class="field">
+        <label for="fEnvioHasta">Envío hasta</label>
+        <input id="fEnvioHasta" type="date">
+      </div>
+      <button class="btn" id="btnClearSecondary">Limpiar secundarios</button>
+    </div>
+    <div class="results-line" id="resultsLine"></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="id">ID <span class="arrow">▾</span></th>
+            <th data-sort="doc">Doc. Identificación <span class="arrow">▾</span></th>
+            <th data-sort="nombre">Nombre Beneficiario <span class="arrow">▾</span></th>
+            <th data-sort="local">Local <span class="arrow">▾</span></th>
+            <th data-sort="valor">Valor <span class="arrow">▾</span></th>
+            <th data-sort="fechaEnvio">Fecha envío <span class="arrow">▾</span></th>
+            <th data-sort="comercio">Comercio <span class="arrow">▾</span></th>
+            <th data-sort="fechaEntrega">Fecha de entrega <span class="arrow">▾</span></th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="9"><div class="empty-state"><div class="big">⏳</div>Cargando datos desde Google Sheets…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <div class="pg-info" id="pgInfo">–</div>
+      <div class="pg-controls">
+        <select class="pg-select" id="pgSize">
+          <option value="25">25 / página</option>
+          <option value="50" selected>50 / página</option>
+          <option value="100">100 / página</option>
+          <option value="250">250 / página</option>
+        </select>
+        <button class="pg-btn" id="pgFirst">«</button>
+        <button class="pg-btn" id="pgPrev">‹</button>
+        <span id="pgCurrent" class="pg-info" style="min-width:70px;text-align:center;">1 / 1</span>
+        <button class="pg-btn" id="pgNext">›</button>
+        <button class="pg-btn" id="pgLast">»</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="meta">
+    Fuente de datos: Google Sheets (lectura pública vía <code>gviz</code>). Cálculo de 72 horas hábiles considera jornada <span id="metaJornada">09:00–18:00</span>, días <span id="metaDias">lun–vie</span> y feriados de Ecuador configurados. Módulos: DataSource · Transform · Calendar · Calculator · Dashboard.
+  </footer>
+
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="config-panel" id="configPanel">
+  <div class="config-head">
+    <h2>Configuración</h2>
+    <button class="close-x" id="btnCloseConfig">✕</button>
+  </div>
+  <div class="config-body">
+
+    <div class="config-section">
+      <h3>Fuente de datos</h3>
+      <div class="config-grid">
+        <div class="field">
+          <label>Modo de conexión</label>
+          <select id="cfgSourceMode">
+            <option value="appsScript">Apps Script (hoja privada, recomendado)</option>
+            <option value="gviz">Google Sheets público (sin backend)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="blockAppsScript" style="margin-top:10px;">
+        <div class="config-grid">
+          <div class="field"><label>URL del Apps Script (/exec)</label><input id="cfgAppsScriptUrl" type="text" placeholder="https://script.google.com/macros/s/AKfycb.../exec"></div>
+          <div class="field"><label>Token secreto</label><input id="cfgAppsScriptToken" type="text" placeholder="El mismo SECRET_TOKEN que pusiste en el script"></div>
+        </div>
+        <div class="hint">Requiere desplegar una vez el puente <code>sheets_bridge.gs</code> desde tu propia hoja (Extensiones → Apps Script). La hoja permanece privada; solo este endpoint, protegido por token, queda accesible.</div>
+      </div>
+
+      <div id="blockGviz" style="margin-top:10px; display:none;">
+        <div class="config-grid">
+          <div class="field"><label>URL o ID de la planilla</label><input id="cfgSheetUrl" type="text" placeholder="Pega aquí la URL completa de Google Sheets"></div>
+          <div class="field half"><label>GID (pestaña)</label><input id="cfgGid" type="text" placeholder="0"></div>
+        </div>
+        <div class="hint">Solo funciona si la hoja está compartida como <strong>"Cualquier persona con el enlace – Lector"</strong>. No usar con datos sensibles/privados.</div>
+      </div>
+
+      <div class="config-grid" style="margin-top:10px;">
+        <div class="field half"><label>Auto-actualizar cada (min)</label><input id="cfgRefresh" type="number" min="1" step="1"></div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>Filtro de origen</h3>
+      <div class="config-grid">
+        <div class="field"><label>Prefijo de ID a incluir</label><input id="cfgIdPrefix" type="text" placeholder="UIIO"></div>
+      </div>
+      <div class="hint">Solo se muestran filas cuyo ID comienza con este prefijo (según la sección 2 del requerimiento).</div>
+    </div>
+
+    <div class="config-section">
+      <h3>Jornada laboral</h3>
+      <div class="config-grid">
+        <div class="field half"><label>Hora inicio</label><input id="cfgWorkStart" type="number" min="0" max="23"></div>
+        <div class="field half"><label>Hora término</label><input id="cfgWorkEnd" type="number" min="1" max="24"></div>
+        <div class="field"><label>Horas hábiles requeridas</label><input id="cfgReqHours" type="number" min="1"></div>
+        <div class="field">
+          <label>Días laborales</label>
+          <div class="days-picker" id="daysPicker"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>Feriados — Ecuador</h3>
+      <div class="holiday-list" id="holidayList"></div>
+      <div class="add-holiday">
+        <input id="newHolidayDate" type="date">
+        <input id="newHolidayName" type="text" placeholder="Nombre del feriado">
+        <button class="btn icon-only" id="btnAddHoliday">+</button>
+      </div>
+      <div class="hint">Estructura independiente de la fórmula de cálculo (sección 5). Incluye los feriados nacionales oficiales 2026 con traslados ya aplicados. Actualiza esta tabla cada año — no requiere tocar el código.</div>
+    </div>
+
+    <div class="config-section">
+      <h3>Nota técnica — conexión con Drive</h3>
+      <div class="hint">
+        Esta app lee la hoja vía el endpoint público <code>gviz/tq</code> de Google Sheets (solo lectura, sin API key), lo que cumple "actualización automática" sin backend. Limitaciones: (1) la hoja debe ser un <em>Google Sheet nativo</em> visible por enlace — un .xlsx sin convertir en Drive no es legible así; (2) si la información es sensible, este método no es privado. Para una fuente privada con OAuth, la arquitectura recomendada es <strong>Google Drive → Backend (Apps Script o servidor con Sheets API + service account) → este dashboard vía API propia</strong>, manteniendo igual el resto de los módulos (Transform, Calculator, Calendar, Dashboard).
+      </div>
+    </div>
+
+  </div>
+  <div class="config-foot">
+    <button class="btn" id="btnResetConfig">Restaurar por defecto</button>
+    <button class="btn primary" id="btnApplyConfig">Guardar y actualizar</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   MÓDULO: CONFIG
+   Único lugar donde se define la configuración editable. El panel de
+   "Configuración" en la UI lee y escribe este objeto en tiempo real.
+   ===================================================================== */
+const Config = {
+  // sourceMode: 'appsScript' (hoja privada, vía puente seguro) | 'gviz' (hoja pública)
+  sourceMode: 'gviz',
+  appsScriptUrl: '',
+  appsScriptToken: '',
+  sheetId: '194fq1wuBNhIj7u8PSpLRpU5TC2xNi-cipY5HhTfSOC8',
+  gid: '0',
+  refreshMinutes: 10,
+  idPrefix: 'UIIO',
+  workStartHour: 9,
+  workEndHour: 18,
+  requiredBusinessHours: 72,
+  workDays: [1,2,3,4,5], // 0=domingo ... 6=sábado
+  country: 'Ecuador',
+  // Sección 5: tabla independiente de feriados (no hardcodeada en la fórmula).
+  // Feriados nacionales oficiales de Ecuador 2026 (con traslados ya aplicados
+  // según la Ley Reformatoria al Código del Trabajo, R.O. Sup. 906/2016).
+  // Fuente: Viceministerio de Turismo de Ecuador. Actualizar cada año.
+  holidays: [
+    { date:'2026-01-01', name:'Año Nuevo' },
+    { date:'2026-01-02', name:'Feriado adicional Año Nuevo (no recuperable)' },
+    { date:'2026-02-16', name:'Carnaval' },
+    { date:'2026-02-17', name:'Carnaval' },
+    { date:'2026-04-03', name:'Viernes Santo' },
+    { date:'2026-04-30', name:'Día no laborable (Decreto Ejecutivo)' },
+    { date:'2026-05-01', name:'Día del Trabajo' },
+    { date:'2026-05-25', name:'Batalla de Pichincha (trasladado del 24/05)' },
+    { date:'2026-08-10', name:'Primer Grito de Independencia' },
+    { date:'2026-10-09', name:'Independencia de Guayaquil' },
+    { date:'2026-11-02', name:'Día de los Difuntos' },
+    { date:'2026-11-03', name:'Independencia de Cuenca' },
+    { date:'2026-12-25', name:'Navidad' }
+  ]
+};
+
+// Alias de columnas: nombres posibles que puede tener el encabezado real
+// en la planilla para cada campo lógico que necesita el dashboard.
+const COLUMN_ALIASES = {
+  id: ['id'],
+  doc: ['doc de identificacion','documento de identificacion','doc identificacion','cedula','identificacion','doc. de identificacion'],
+  nombre: ['nombre beneficiario','beneficiario','nombre'],
+  local: ['local'],
+  valor: ['valor','monto'],
+  fechaEnvio: ['fecha envio','fecha de envio','envio','fecha envío','fecha de envío'],
+  comercio: ['comercio']
+};
+
+/* =====================================================================
+   MÓDULO: DATASOURCE
+   Responsable exclusivamente de traer los datos crudos desde Google
+   Sheets. No sabe nada de negocio.
+   ===================================================================== */
+const DataSource = {
+  gvizUrl(sheetId, gid){
+    return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${encodeURIComponent(gid||0)}&t=${Date.now()}`;
+  },
+  extractSheetId(input){
+    if(!input) return input;
+    const m = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    return m ? m[1] : input.trim();
+  },
+  extractGid(input){
+    const m = input && input.match(/[?&#]gid=(\d+)/);
+    return m ? m[1] : null;
+  },
+
+  // Modo A (recomendado para hojas privadas): Google Apps Script Web App
+  // desplegado por el dueño de la hoja. Devuelve JSON ya en el formato
+  // { headers:[...], rows:[{header:valor,...}] }. Ver sheets_bridge.gs.
+  async fetchFromAppsScript(url, token){
+    if(!url) throw new Error('Falta la URL del Apps Script en Configuración → Fuente de datos.');
+    const sep = url.includes('?') ? '&' : '?';
+    const full = `${url}${sep}token=${encodeURIComponent(token||'')}&t=${Date.now()}`;
+    const res = await fetch(full, { credentials:'omit' });
+    let json;
+    try{ json = await res.json(); }
+    catch(e){ throw new Error(`La respuesta del Apps Script no es JSON válido (HTTP ${res.status}). Verifica que la implementación esté activa y accesible.`); }
+    if(json.status === 'error') throw new Error(json.message || 'El Apps Script devolvió un error.');
+    if(!res.ok) throw new Error(`HTTP ${res.status} al consultar el Apps Script.`);
+    return { headers: json.headers || [], rows: json.rows || [] };
+  },
+
+  // Modo B (solo hojas públicas "Cualquiera con el enlace"): endpoint gviz.
+  async fetchFromGviz(sheetId, gid){
+    const res = await fetch(this.gvizUrl(sheetId, gid), { credentials:'omit' });
+    if(!res.ok) throw new Error(`No se pudo leer la planilla (HTTP ${res.status}). Verifica que esté compartida como "Cualquiera con el enlace".`);
+    const text = await res.text();
+    const start = text.indexOf('(');
+    const end = text.lastIndexOf(')');
+    if(start === -1 || end === -1) throw new Error('La respuesta de Google Sheets no tiene el formato esperado (¿la hoja es privada? usa el modo Apps Script).');
+    let json;
+    try{ json = JSON.parse(text.slice(start+1, end)); }
+    catch(e){ throw new Error('No se pudo interpretar la respuesta de Google Sheets.'); }
+    if(json.status === 'error'){
+      const msg = (json.errors && json.errors[0] && json.errors[0].detailed_message) || 'Error desconocido al consultar la hoja (posiblemente privada).';
+      throw new Error(msg);
+    }
+    const table = json.table; // { cols:[{label}], rows:[{c:[{v,f}]}] }
+    const headers = (table.cols||[]).map(c => c.label || '');
+    const rows = (table.rows||[]).map(r => {
+      const obj = {};
+      headers.forEach((h,i) => {
+        const cell = r.c && r.c[i];
+        obj[h] = cell ? (cell.v !== undefined && cell.v !== null ? cell.v : cell.f) : null;
+        // conserva también el crudo "Date(...)" de gviz si existe, para el parser de fechas
+        if(cell && typeof cell.v === 'string' && /^Date\(/.test(cell.v)) obj[h] = cell.v;
+      });
+      return obj;
+    });
+    return { headers, rows };
+  },
+
+  async fetchTable(){
+    if(Config.sourceMode === 'appsScript') return this.fetchFromAppsScript(Config.appsScriptUrl, Config.appsScriptToken);
+    return this.fetchFromGviz(Config.sheetId, Config.gid);
+  }
+};
+
+/* =====================================================================
+   MÓDULO: CALENDAR
+   Todo lo relacionado a feriados y días hábiles vive aquí. Consulta
+   siempre la tabla Config.holidays, nunca fechas sueltas en el código.
+   ===================================================================== */
+const Calendar = {
+  holidaySet(){
+    return new Set(Config.holidays.map(h => h.date));
+  },
+  toKey(date){
+    const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  },
+  isHoliday(date){
+    return this.holidaySet().has(this.toKey(date));
+  },
+  isWorkDay(date){
+    return Config.workDays.includes(date.getDay());
+  },
+  isBusinessDay(date){
+    return this.isWorkDay(date) && !this.isHoliday(date);
+  }
+};
+
+/* =====================================================================
+   MÓDULO: CALCULATOR
+   Cálculo de "Fecha de entrega" = fecha/hora de envío + N horas hábiles,
+   respetando jornada laboral, fines de semana y feriados de Ecuador.
+   ===================================================================== */
+const Calculator = {
+  dayStart(date){ const d=new Date(date); d.setHours(Config.workStartHour,0,0,0); return d; },
+  dayEnd(date){ const d=new Date(date); d.setHours(Config.workEndHour,0,0,0); return d; },
+  nextCalendarDay(date){ const d=new Date(date); d.setDate(d.getDate()+1); d.setHours(0,0,0,0); return d; },
+
+  // Ubica el punto de partida real dentro de la jornada laboral:
+  // si cae fuera de horario o en día no hábil, avanza al inicio del
+  // siguiente día hábil.
+  clampToBusinessStart(date){
+    let d = new Date(date);
+    let guard = 0;
+    while(guard++ < 1000){
+      if(Calendar.isBusinessDay(d)){
+        const start = this.dayStart(d), end = this.dayEnd(d);
+        if(d < start) return start;
+        if(d < end) return d;
+        d = this.nextCalendarDay(d);
+      } else {
+        d = this.nextCalendarDay(d);
+      }
+    }
+    return d;
+  },
+
+  addBusinessHours(startDate, hours){
+    let remainingMs = hours * 3600000;
+    let current = this.clampToBusinessStart(startDate);
+    let guard = 0;
+    while(remainingMs > 0 && guard++ < 2000){
+      if(!Calendar.isBusinessDay(current)){
+        current = this.dayStart(this.nextCalendarDay(current));
+        continue;
+      }
+      const end = this.dayEnd(current);
+      if(current >= end){
+        current = this.dayStart(this.nextCalendarDay(current));
+        continue;
+      }
+      const availableMs = end - current;
+      if(availableMs >= remainingMs){
+        current = new Date(current.getTime() + remainingMs);
+        remainingMs = 0;
+      } else {
+        remainingMs -= availableMs;
+        current = this.dayStart(this.nextCalendarDay(end));
+      }
+    }
+    return current;
+  },
+
+  // Progreso 0-1 de horas hábiles transcurridas entre envío y ahora,
+  // relativo a las horas requeridas (para la barra visual de la tabla).
+  elapsedBusinessHours(startDate, untilDate){
+    let d = this.clampToBusinessStart(startDate);
+    if(untilDate <= d) return 0;
+    let elapsedMs = 0, guard=0;
+    let cursor = new Date(d);
+    while(cursor < untilDate && guard++ < 2000){
+      if(!Calendar.isBusinessDay(cursor)){ cursor = this.dayStart(this.nextCalendarDay(cursor)); continue; }
+      const end = this.dayEnd(cursor);
+      const segmentEnd = untilDate < end ? untilDate : end;
+      if(segmentEnd > cursor) elapsedMs += (segmentEnd - cursor);
+      cursor = this.dayStart(this.nextCalendarDay(end));
+    }
+    return elapsedMs / 3600000;
+  }
+};
+
+/* =====================================================================
+   MÓDULO: TRANSFORM
+   Detección de columnas, limpieza y normalización de filas crudas de
+   gviz al modelo de datos que usa el dashboard.
+   ===================================================================== */
+const Transform = {
+  normalizeHeader(s){
+    return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  },
+  findColumn(headers, aliases){
+    for(let i=0;i<headers.length;i++){
+      const label = this.normalizeHeader(headers[i]);
+      if(aliases.some(a => label === a || label.includes(a))) return headers[i];
+    }
+    return null;
+  },
+  mapColumns(headers){
+    const map = {};
+    for(const key in COLUMN_ALIASES){ map[key] = this.findColumn(headers, COLUMN_ALIASES[key]); }
+    return map;
+  },
+  parseGvizDate(raw){
+    if(raw == null) return null;
+    if(raw instanceof Date) return raw;
+    const s = String(raw);
+    let m = s.match(/^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/);
+    if(m){
+      return new Date(+m[1], +m[2], +m[3], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+    }
+    // DD/MM/YYYY [HH:mm[:ss]]
+    m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if(m){
+      let yy = +m[3]; if(yy < 100) yy += 2000;
+      return new Date(yy, +m[1]-1, +m[2], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+    }
+    // YYYY-MM-DD [HH:mm[:ss]]
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if(m){
+      return new Date(+m[1], +m[2]-1, +m[3], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+    }
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+  },
+  parseValor(raw){
+    if(raw == null) return null;
+    if(typeof raw === 'number') return raw;
+    let s = String(raw).trim();
+    if(!s) return null;
+    s = s.replace(/[^0-9.,-]/g,'');
+    if(!s) return null;
+    const lastComma = s.lastIndexOf(','), lastDot = s.lastIndexOf('.');
+    if(lastComma > lastDot) s = s.replace(/\./g,'').replace(',', '.');
+    else if(lastDot > lastComma) s = s.replace(/,/g,'');
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  },
+  cellRaw(row, header){
+    if(!header || row[header] === undefined) return null;
+    return row[header];
+  },
+  cleanText(v){
+    if(v == null) return '';
+    return String(v).replace(/\s+/g,' ').trim();
+  },
+
+  // Convierte {headers, rows} (formato unificado, ya sea de Apps Script o
+  // de gviz) en filas de negocio limpias. Aplica: filtro de prefijo de ID,
+  // normalización de texto, parseo de fecha/valor, y detección de filas
+  // inválidas (secciones 12/13).
+  buildRows(source){
+    const headers = source.headers || [];
+    const colMap = this.mapColumns(headers);
+    const missing = Object.keys(colMap).filter(k => !colMap[k]);
+    const rowsOut = [];
+    const now = new Date();
+
+    (source.rows || []).forEach((row, i) => {
+      const idText = this.cleanText(this.cellRaw(row, colMap.id));
+      if(!idText) return; // fila sin ID -> se descarta silenciosamente del listado principal
+      if(Config.idPrefix && !idText.toUpperCase().startsWith(Config.idPrefix.toUpperCase())) return;
+
+      const docText = this.cleanText(this.cellRaw(row, colMap.doc));
+      const nombreText = this.cleanText(this.cellRaw(row, colMap.nombre));
+      const localText = this.cleanText(this.cellRaw(row, colMap.local));
+      const comercioText = this.cleanText(this.cellRaw(row, colMap.comercio));
+      const valor = this.parseValor(this.cellRaw(row, colMap.valor));
+      const fechaEnvio = this.parseGvizDate(this.cellRaw(row, colMap.fechaEnvio));
+
+      const warnings = [];
+      if(!docText) warnings.push('Documento de identificación vacío');
+      if(!fechaEnvio) warnings.push('Fecha de envío inválida o vacía');
+      if(valor == null) warnings.push('Valor inválido');
+      if(!comercioText) warnings.push('Comercio vacío');
+
+      let fechaEntrega = null, estado = 'Pendiente', progress = 0;
+      if(fechaEnvio){
+        fechaEntrega = Calculator.addBusinessHours(fechaEnvio, Config.requiredBusinessHours);
+        estado = now >= fechaEntrega ? 'Vencido' : 'En plazo';
+        progress = Math.max(0, Math.min(1, Calculator.elapsedBusinessHours(fechaEnvio, now < fechaEntrega ? now : fechaEntrega) / Config.requiredBusinessHours));
+      }
+
+      rowsOut.push({
+        _rowIndex: i,
+        id: idText,
+        doc: docText,
+        docNorm: docText.replace(/[.\-\s]/g,'').toLowerCase(),
+        nombre: nombreText,
+        local: localText,
+        valor: valor,
+        fechaEnvio: fechaEnvio,
+        comercio: comercioText,
+        fechaEntrega: fechaEntrega,
+        estado: estado,
+        progress: progress,
+        warnings: warnings
+      });
+    });
+
+    return { rows: rowsOut, missingColumns: missing };
+  }
+};
+
+/* =====================================================================
+   ESTADO GLOBAL DE LA APP
+   ===================================================================== */
+const State = {
+  allRows: [],
+  filtered: [],
+  page: 1,
+  pageSize: 50,
+  sortKey: 'fechaEnvio',
+  sortDir: 'desc',
+  lastUpdate: null,
+  refreshTimer: null,
+  isLoading: false
+};
+
+/* =====================================================================
+   MÓDULO: DASHBOARD (UI)
+   ===================================================================== */
+const fmtMoney = v => v == null ? '—' : '$' + v.toLocaleString('es-EC', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtDate = d => !d ? '—' : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+const fmtDateH = d => !d ? '—' : `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}h`;
+
+function showBanner(type, html){
+  const host = document.getElementById('bannerHost');
+  const el = document.createElement('div');
+  el.className = 'banner ' + type;
+  el.innerHTML = `<span>${html}</span><button class="close">✕</button>`;
+  el.querySelector('.close').onclick = () => el.remove();
+  host.innerHTML = '';
+  host.appendChild(el);
+}
+function clearBanners(){ document.getElementById('bannerHost').innerHTML = ''; }
+
+function setStatus(mode, text){
+  const chip = document.getElementById('statusChip');
+  chip.className = 'status-chip' + (mode === 'error' ? ' err' : mode === 'loading' ? ' loading' : '');
+  document.getElementById('statusText').textContent = text;
+}
+
+function applyFiltersAndRender(){
+  const doc = normDocInput(document.getElementById('docSearch').value);
+  const local = document.getElementById('fLocal').value;
+  const comercio = document.getElementById('fComercio').value;
+  const estado = document.getElementById('fEstado').value;
+  const desde = document.getElementById('fEnvioDesde').value;
+  const hasta = document.getElementById('fEnvioHasta').value;
+
+  let rows = State.allRows;
+  if(doc) rows = rows.filter(r => r.docNorm.includes(doc));
+  if(local) rows = rows.filter(r => r.local === local);
+  if(comercio) rows = rows.filter(r => r.comercio === comercio);
+  if(estado) rows = rows.filter(r => r.estado === estado);
+  if(desde){ const dd = new Date(desde+'T00:00:00'); rows = rows.filter(r => r.fechaEnvio && r.fechaEnvio >= dd); }
+  if(hasta){ const hh = new Date(hasta+'T23:59:59'); rows = rows.filter(r => r.fechaEnvio && r.fechaEnvio <= hh); }
+
+  rows = rows.slice().sort((a,b) => {
+    let av = a[State.sortKey], bv = b[State.sortKey];
+    if(av instanceof Date) av = av ? av.getTime() : -Infinity;
+    if(bv instanceof Date) bv = bv ? bv.getTime() : -Infinity;
+    if(typeof av === 'string') av = av.toLowerCase();
+    if(typeof bv === 'string') bv = bv.toLowerCase();
+    if(av == null) av = '';
+    if(bv == null) bv = '';
+    if(av < bv) return State.sortDir === 'asc' ? -1 : 1;
+    if(av > bv) return State.sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  State.filtered = rows;
+  State.page = 1;
+  renderKPIs();
+  renderTable();
+}
+
+function normDocInput(s){ return (s||'').replace(/[.\-\s]/g,'').toLowerCase(); }
+
+function renderKPIs(){
+  const total = State.allRows.length;
+  const filtered = State.filtered;
+  document.getElementById('kpiTotal').textContent = total.toLocaleString('es-EC');
+  document.getElementById('kpiFiltered').textContent = filtered.length.toLocaleString('es-EC');
+  document.getElementById('kpiFilteredSub').textContent = filtered.length === total ? 'sin filtros aplicados' : `de ${total.toLocaleString('es-EC')} totales`;
+  const sum = filtered.reduce((acc,r) => acc + (r.valor||0), 0);
+  document.getElementById('kpiValue').textContent = fmtMoney(sum);
+  document.getElementById('kpiOnTime').textContent = filtered.filter(r=>r.estado==='En plazo').length.toLocaleString('es-EC');
+  document.getElementById('kpiOverdue').textContent = filtered.filter(r=>r.estado==='Vencido').length.toLocaleString('es-EC');
+}
+
+function statusBadge(estado){
+  const map = { 'En plazo':['plazo','En plazo'], 'Vencido':['vencido','Vencido'], 'Pendiente':['pendiente','Pendiente'] };
+  const [cls,label] = map[estado] || ['pendiente','Pendiente'];
+  return `<span class="badge ${cls}"><span class="dot"></span>${label}</span>`;
+}
+
+function renderTable(){
+  const tbody = document.getElementById('tbody');
+  const total = State.filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / State.pageSize));
+  if(State.page > totalPages) State.page = totalPages;
+  const startIdx = (State.page - 1) * State.pageSize;
+  const pageRows = State.filtered.slice(startIdx, startIdx + State.pageSize);
+
+  if(total === 0){
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="big">🔍</div>No hay registros que coincidan con los filtros actuales.</div></td></tr>`;
+  } else {
+    tbody.innerHTML = pageRows.map(r => {
+      const warnFlag = r.warnings.length ? `<span class="row-flag" title="${r.warnings.join(' · ')}">⚠</span>` : '';
+      let barClass = 'progress-fill';
+      if(r.estado === 'Vencido') barClass += ' over';
+      else if(r.progress > 0.75) barClass += ' warn';
+      return `<tr>
+        <td class="mono id-cell">${escapeHtml(r.id)}</td>
+        <td class="mono">${escapeHtml(r.doc)} ${warnFlag}</td>
+        <td>${escapeHtml(r.nombre) || '—'}</td>
+        <td>${escapeHtml(r.local) || '—'}</td>
+        <td class="money">${fmtMoney(r.valor)}</td>
+        <td class="mono">${fmtDate(r.fechaEnvio)}</td>
+        <td>${escapeHtml(r.comercio) || '—'}</td>
+        <td><div class="deadline-cell"><span class="mono">${fmtDateH(r.fechaEntrega)}</span>${r.fechaEntrega ? `<span class="progress-track"><span class="${barClass}" style="width:${Math.round(r.progress*100)}%"></span></span>` : ''}</div></td>
+        <td>${statusBadge(r.estado)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('resultsLine').innerHTML = `Mostrando <b>${Math.min(total, startIdx+1)}–${Math.min(total, startIdx+pageRows.length)}</b> de <b>${total.toLocaleString('es-EC')}</b> registros filtrados.`;
+  document.getElementById('pgInfo').textContent = `${total.toLocaleString('es-EC')} registros`;
+  document.getElementById('pgCurrent').textContent = `${State.page} / ${totalPages}`;
+  document.getElementById('pgFirst').disabled = document.getElementById('pgPrev').disabled = State.page <= 1;
+  document.getElementById('pgLast').disabled = document.getElementById('pgNext').disabled = State.page >= totalPages;
+
+  document.querySelectorAll('thead th[data-sort]').forEach(th => {
+    th.classList.toggle('active', th.dataset.sort === State.sortKey);
+    const arrow = th.querySelector('.arrow');
+    if(th.dataset.sort === State.sortKey) arrow.textContent = State.sortDir === 'asc' ? '▲' : '▼';
+    else arrow.textContent = '▾';
+  });
+}
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function populateSecondaryFilterOptions(){
+  const locals = [...new Set(State.allRows.map(r=>r.local).filter(Boolean))].sort();
+  const comercios = [...new Set(State.allRows.map(r=>r.comercio).filter(Boolean))].sort();
+  const fLocal = document.getElementById('fLocal'), fComercio = document.getElementById('fComercio');
+  const curLocal = fLocal.value, curComercio = fComercio.value;
+  fLocal.innerHTML = '<option value="">Todos</option>' + locals.map(l=>`<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
+  fComercio.innerHTML = '<option value="">Todos</option>' + comercios.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  fLocal.value = curLocal; fComercio.value = curComercio;
+}
+
+/* =====================================================================
+   CARGA / SINCRONIZACIÓN
+   ===================================================================== */
+async function loadData(isManual){
+  if(State.isLoading) return;
+  State.isLoading = true;
+  setStatus('loading', 'Sincronizando…');
+  document.getElementById('btnRefresh').classList.add('spin');
+  try{
+    const source = await DataSource.fetchTable();
+    const { rows, missingColumns } = Transform.buildRows(source);
+    State.allRows = rows;
+    State.lastUpdate = new Date();
+    clearBanners();
+    if(missingColumns.length){
+      showBanner('warn', `<strong>Aviso:</strong> no se detectaron automáticamente estas columnas en la planilla: ${missingColumns.join(', ')}. Revisa los encabezados o los alias configurados en el código (COLUMN_ALIASES).`);
+    }
+    const invalidCount = rows.filter(r=>r.warnings.length).length;
+    if(invalidCount){
+      showBanner('warn', `${invalidCount} fila(s) tienen datos incompletos o inválidos (ver ícono ⚠ en la columna Doc. de Identificación) y se marcan como "Pendiente".`);
+    }
+    populateSecondaryFilterOptions();
+    applyFiltersAndRender();
+    setStatus('ok', 'Sincronizado');
+    document.getElementById('lastUpdateLine').textContent = `Última actualización: ${fmtDate(State.lastUpdate)}`;
+  } catch(err){
+    console.error(err);
+    setStatus('error', 'Error de sincronización');
+    showBanner('error', `<strong>No se pudo actualizar desde Google Sheets:</strong> ${escapeHtml(err.message)}. Se mantienen los últimos datos cargados (${State.allRows.length} registros).`);
+  } finally {
+    State.isLoading = false;
+    document.getElementById('btnRefresh').classList.remove('spin');
+  }
+}
+
+function scheduleAutoRefresh(){
+  if(State.refreshTimer) clearInterval(State.refreshTimer);
+  const ms = Math.max(1, Config.refreshMinutes) * 60000;
+  State.refreshTimer = setInterval(() => loadData(false), ms);
+}
+
+/* =====================================================================
+   CONFIGURACIÓN — PANEL
+   ===================================================================== */
+const DAY_LABELS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+function renderDaysPicker(){
+  const el = document.getElementById('daysPicker');
+  el.innerHTML = DAY_LABELS.map((lbl,i) => `<span class="day-chip ${Config.workDays.includes(i)?'on':''}" data-day="${i}">${lbl}</span>`).join('');
+  el.querySelectorAll('.day-chip').forEach(chip => {
+    chip.onclick = () => {
+      const d = +chip.dataset.day;
+      const idx = Config.workDays.indexOf(d);
+      if(idx === -1) Config.workDays.push(d); else Config.workDays.splice(idx,1);
+      Config.workDays.sort();
+      renderDaysPicker();
+    };
+  });
+}
+function renderHolidayList(){
+  const el = document.getElementById('holidayList');
+  const sorted = Config.holidays.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  el.innerHTML = sorted.map(h => `<div class="holiday-row"><span class="hdate">${h.date.slice(8,10)}/${h.date.slice(5,7)}/${h.date.slice(0,4)}</span><span class="hname">${escapeHtml(h.name)}</span><button data-date="${h.date}" title="Eliminar">✕</button></div>`).join('') || '<div class="holiday-row"><span class="hname">Sin feriados configurados.</span></div>';
+  el.querySelectorAll('button[data-date]').forEach(btn => {
+    btn.onclick = () => { Config.holidays = Config.holidays.filter(h => h.date !== btn.dataset.date); renderHolidayList(); };
+  });
+}
+function toggleSourceBlocks(mode){
+  document.getElementById('blockAppsScript').style.display = mode === 'appsScript' ? 'block' : 'none';
+  document.getElementById('blockGviz').style.display = mode === 'gviz' ? 'block' : 'none';
+}
+document.getElementById('cfgSourceMode').addEventListener('change', (e) => toggleSourceBlocks(e.target.value));
+
+function openConfigForm(){
+  document.getElementById('cfgSourceMode').value = Config.sourceMode;
+  toggleSourceBlocks(Config.sourceMode);
+  document.getElementById('cfgAppsScriptUrl').value = Config.appsScriptUrl;
+  document.getElementById('cfgAppsScriptToken').value = Config.appsScriptToken;
+  document.getElementById('cfgSheetUrl').value = Config.sheetId;
+  document.getElementById('cfgGid').value = Config.gid;
+  document.getElementById('cfgRefresh').value = Config.refreshMinutes;
+  document.getElementById('cfgIdPrefix').value = Config.idPrefix;
+  document.getElementById('cfgWorkStart').value = Config.workStartHour;
+  document.getElementById('cfgWorkEnd').value = Config.workEndHour;
+  document.getElementById('cfgReqHours').value = Config.requiredBusinessHours;
+  renderDaysPicker();
+  renderHolidayList();
+}
+function toggleConfig(open){
+  document.getElementById('overlay').classList.toggle('open', open);
+  document.getElementById('configPanel').classList.toggle('open', open);
+  if(open) openConfigForm();
+}
+
+/* =====================================================================
+   EVENTOS
+   ===================================================================== */
+document.getElementById('btnRefresh').onclick = () => loadData(true);
+document.getElementById('btnConfig').onclick = () => toggleConfig(true);
+document.getElementById('btnCloseConfig').onclick = () => toggleConfig(false);
+document.getElementById('overlay').onclick = () => toggleConfig(false);
+
+document.getElementById('btnToggleSecondary').onclick = (e) => {
+  const box = document.getElementById('secondaryFilters');
+  const open = box.style.display !== 'none';
+  box.style.display = open ? 'none' : 'flex';
+  e.target.textContent = open ? 'Más filtros ▾' : 'Menos filtros ▴';
+};
+document.getElementById('btnClearDoc').onclick = () => { document.getElementById('docSearch').value=''; applyFiltersAndRender(); };
+document.getElementById('btnClearSecondary').onclick = () => {
+  ['fLocal','fComercio','fEstado','fEnvioDesde','fEnvioHasta'].forEach(id => document.getElementById(id).value='');
+  applyFiltersAndRender();
+};
+
+let debounceT;
+document.getElementById('docSearch').addEventListener('input', () => { clearTimeout(debounceT); debounceT = setTimeout(applyFiltersAndRender, 180); });
+['fLocal','fComercio','fEstado','fEnvioDesde','fEnvioHasta'].forEach(id => document.getElementById(id).addEventListener('change', applyFiltersAndRender));
+
+document.querySelectorAll('thead th[data-sort]').forEach(th => {
+  th.onclick = () => {
+    const key = th.dataset.sort;
+    if(State.sortKey === key) State.sortDir = State.sortDir === 'asc' ? 'desc' : 'asc';
+    else { State.sortKey = key; State.sortDir = 'asc'; }
+    renderTable();
+  };
+});
+
+document.getElementById('pgSize').onchange = (e) => { State.pageSize = +e.target.value; State.page = 1; renderTable(); };
+document.getElementById('pgFirst').onclick = () => { State.page = 1; renderTable(); };
+document.getElementById('pgPrev').onclick = () => { State.page = Math.max(1, State.page-1); renderTable(); };
+document.getElementById('pgNext').onclick = () => { State.page += 1; renderTable(); };
+document.getElementById('pgLast').onclick = () => { State.page = Math.ceil(State.filtered.length / State.pageSize) || 1; renderTable(); };
+
+document.getElementById('btnAddHoliday').onclick = () => {
+  const d = document.getElementById('newHolidayDate').value;
+  const n = document.getElementById('newHolidayName').value.trim();
+  if(!d || !n) return;
+  if(!Config.holidays.some(h=>h.date===d)) Config.holidays.push({date:d, name:n});
+  document.getElementById('newHolidayDate').value=''; document.getElementById('newHolidayName').value='';
+  renderHolidayList();
+};
+
+document.getElementById('btnApplyConfig').onclick = () => {
+  Config.sourceMode = document.getElementById('cfgSourceMode').value;
+  Config.appsScriptUrl = document.getElementById('cfgAppsScriptUrl').value.trim();
+  Config.appsScriptToken = document.getElementById('cfgAppsScriptToken').value.trim();
+  const rawSheet = document.getElementById('cfgSheetUrl').value.trim();
+  Config.sheetId = DataSource.extractSheetId(rawSheet);
+  const gidFromUrl = DataSource.extractGid(rawSheet);
+  Config.gid = gidFromUrl || document.getElementById('cfgGid').value.trim() || '0';
+  Config.refreshMinutes = Math.max(1, +document.getElementById('cfgRefresh').value || 10);
+  Config.idPrefix = document.getElementById('cfgIdPrefix').value.trim();
+  Config.workStartHour = +document.getElementById('cfgWorkStart').value;
+  Config.workEndHour = +document.getElementById('cfgWorkEnd').value;
+  Config.requiredBusinessHours = +document.getElementById('cfgReqHours').value;
+  document.getElementById('metaJornada').textContent = `${String(Config.workStartHour).padStart(2,'0')}:00–${String(Config.workEndHour).padStart(2,'0')}:00`;
+  document.getElementById('metaDias').textContent = Config.workDays.map(d=>DAY_LABELS[d]).join('/');
+  toggleConfig(false);
+  scheduleAutoRefresh();
+  loadData(true);
+};
+
+document.getElementById('btnResetConfig').onclick = () => {
+  document.getElementById('cfgGid').value = '1622137423';
+  document.getElementById('cfgRefresh').value = 10;
+  document.getElementById('cfgWorkStart').value = 9;
+  document.getElementById('cfgWorkEnd').value = 18;
+  document.getElementById('cfgReqHours').value = 72;
+  document.getElementById('cfgIdPrefix').value = 'UIIO';
+};
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+(function init(){
+  document.getElementById('metaJornada').textContent = `${String(Config.workStartHour).padStart(2,'0')}:00–${String(Config.workEndHour).padStart(2,'0')}:00`;
+  document.getElementById('metaDias').textContent = Config.workDays.map(d=>DAY_LABELS[d]).join('/');
+  scheduleAutoRefresh();
+  loadData(true);
+})();
+</script>
+</body>
+</html>
