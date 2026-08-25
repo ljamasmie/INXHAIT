@@ -394,8 +394,9 @@ footer.meta code{background:var(--surface-alt);padding:1px 5px;border-radius:4px
       <h3>Filtro de origen</h3>
       <div class="config-grid">
         <div class="field"><label>Prefijo de ID a incluir</label><input id="cfgIdPrefix" type="text" placeholder="UIIO"></div>
+        <div class="field"><label>Excluir envíos anteriores a</label><input id="cfgMinFecha" type="date"></div>
       </div>
-      <div class="hint">Solo se muestran filas cuyo ID comienza con este prefijo (según la sección 2 del requerimiento).</div>
+      <div class="hint">Solo se muestran filas cuyo ID comienza con este prefijo (según la sección 2 del requerimiento), y cuya Fecha envío es igual o posterior a la fecha mínima (deja el campo vacío para no aplicar mínimo).</div>
     </div>
 
     <div class="config-section">
@@ -452,6 +453,10 @@ const Config = {
   gid: '0',
   refreshMinutes: 10,
   idPrefix: 'UIIO',
+  // Excluye del origen cualquier fila cuya Fecha envío sea anterior a esta.
+  // Útil para descartar datos de prueba antiguos (ej. 2023) sin borrarlos
+  // de la hoja. Déjalo en '' para no aplicar ningún mínimo.
+  minFechaEnvio: '2026-01-01',
   workStartHour: 9,
   workEndHour: 18,
   requiredBusinessDays: 3,
@@ -781,6 +786,10 @@ const Transform = {
       const codigoGCText = this.cleanText(this.cellRaw(row, colMap.codigoGC));
       const valor = this.parseValor(this.cellRaw(row, colMap.valor));
       const fechaEnvio = this.parseGvizDate(this.cellRaw(row, colMap.fechaEnvio));
+      if(Config.minFechaEnvio && fechaEnvio){
+        const minDate = new Date(Config.minFechaEnvio + 'T00:00:00');
+        if(fechaEnvio < minDate) return; // fuera del rango configurado (ej. datos de prueba 2023)
+      }
 
       const warnings = [];
       if(!docText) warnings.push('Documento de identificación vacío');
@@ -1076,6 +1085,7 @@ function openConfigForm(){
   document.getElementById('cfgGid').value = Config.gid;
   document.getElementById('cfgRefresh').value = Config.refreshMinutes;
   document.getElementById('cfgIdPrefix').value = Config.idPrefix;
+  document.getElementById('cfgMinFecha').value = Config.minFechaEnvio;
   document.getElementById('cfgWorkStart').value = Config.workStartHour;
   document.getElementById('cfgWorkEnd').value = Config.workEndHour;
   document.getElementById('cfgReqDays').value = Config.requiredBusinessDays;
@@ -1148,6 +1158,7 @@ document.getElementById('btnApplyConfig').onclick = () => {
   Config.gid = gidFromUrl || document.getElementById('cfgGid').value.trim() || '0';
   Config.refreshMinutes = Math.max(1, +document.getElementById('cfgRefresh').value || 10);
   Config.idPrefix = document.getElementById('cfgIdPrefix').value.trim();
+  Config.minFechaEnvio = document.getElementById('cfgMinFecha').value.trim();
   Config.workStartHour = +document.getElementById('cfgWorkStart').value;
   Config.workEndHour = +document.getElementById('cfgWorkEnd').value;
   Config.requiredBusinessDays = +document.getElementById('cfgReqDays').value;
@@ -1164,6 +1175,7 @@ document.getElementById('btnResetConfig').onclick = () => {
   document.getElementById('cfgWorkEnd').value = 18;
   document.getElementById('cfgReqDays').value = 3;
   document.getElementById('cfgIdPrefix').value = 'UIIO';
+  document.getElementById('cfgMinFecha').value = '2026-01-01';
 };
 
 /* =====================================================================
