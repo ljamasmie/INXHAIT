@@ -352,6 +352,12 @@ footer.meta code{background:var(--surface-alt);padding:1px 5px;border-radius:4px
   <div class="config-body">
 
     <div class="config-section">
+      <h3>Diagnóstico de columnas</h3>
+      <div class="holiday-list" id="diagList" style="max-height:none;"></div>
+      <div class="hint">Esto muestra, en vivo, qué encabezado real de tu hoja detectó el dashboard para cada campo. Si algo dice "No detectado", revisa el nombre exacto del encabezado en tu hoja (fila 1) o dime cuál es y ajusto los alias.</div>
+    </div>
+
+    <div class="config-section">
       <h3>Fuente de datos</h3>
       <div class="config-grid">
         <div class="field">
@@ -808,7 +814,7 @@ const Transform = {
       });
     });
 
-    return { rows: rowsOut, missingColumns: missing };
+    return { rows: rowsOut, missingColumns: missing, colMap: colMap, sourceHeaders: headers };
   }
 };
 
@@ -977,8 +983,10 @@ async function loadData(isManual){
   document.getElementById('btnRefresh').classList.add('spin');
   try{
     const source = await DataSource.fetchTable();
-    const { rows, missingColumns } = Transform.buildRows(source);
+    const { rows, missingColumns, colMap, sourceHeaders } = Transform.buildRows(source);
     State.allRows = rows;
+    State.lastColMap = colMap;
+    State.lastHeaders = sourceHeaders;
     State.lastUpdate = new Date();
     clearBanners();
     if(missingColumns.length){
@@ -1039,7 +1047,27 @@ function toggleSourceBlocks(mode){
 }
 document.getElementById('cfgSourceMode').addEventListener('change', (e) => toggleSourceBlocks(e.target.value));
 
+const FIELD_LABELS = {
+  id: 'ID', doc: 'Doc de Identificación', nombre: 'Nombre Beneficiario', local: 'LOCAL',
+  valor: 'Valor', fechaEnvio: 'Fecha envío', comercio: 'Comercio', codigoGC: 'Código GC Dcanje'
+};
+function renderDiagnostics(){
+  const el = document.getElementById('diagList');
+  if(!State.lastColMap){
+    el.innerHTML = '<div class="holiday-row"><span class="hname">Aún no se ha sincronizado con la planilla.</span></div>';
+    return;
+  }
+  const rows = Object.keys(FIELD_LABELS).map(key => {
+    const detected = State.lastColMap[key];
+    const ok = !!detected;
+    return `<div class="holiday-row"><span class="hname">${FIELD_LABELS[key]}</span><span class="hdate" style="width:auto;color:${ok?'var(--success)':'var(--danger)'}">${ok ? escapeHtml(detected) : 'No detectado'}</span></div>`;
+  }).join('');
+  const headersLine = `<div class="holiday-row"><span class="hname" style="font-size:11px;">Encabezados leídos de la hoja: ${(State.lastHeaders||[]).map(escapeHtml).join(', ') || '—'}</span></div>`;
+  el.innerHTML = rows + headersLine;
+}
+
 function openConfigForm(){
+  renderDiagnostics();
   document.getElementById('cfgSourceMode').value = Config.sourceMode;
   toggleSourceBlocks(Config.sourceMode);
   document.getElementById('cfgAppsScriptUrl').value = Config.appsScriptUrl;
