@@ -197,9 +197,66 @@ footer.meta code{background:var(--surface-alt);padding:1px 5px;border-radius:4px
   .topbar-title h1{font-size:17px;}
   table{min-width:820px;}
 }
+
+/* ============================================================
+   PANTALLA DE ACCESO (gate de clave)
+   ============================================================ */
+#accessGate{
+  position:fixed; inset:0; z-index:9999;
+  background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+}
+#accessGate .gate-card{
+  width:100%; max-width:360px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow-md);
+  padding:28px 26px;
+  text-align:center;
+}
+#accessGate .mark{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:40px; height:40px; border-radius:8px;
+  background:var(--accent-soft); color:var(--accent-strong);
+  font-family:var(--font-display); font-weight:700; font-size:14px;
+  margin-bottom:14px;
+}
+#accessGate h2{
+  font-family:var(--font-display); font-size:17px; margin:0 0 6px;
+  color:var(--text-primary);
+}
+#accessGate p{
+  font-size:13px; color:var(--text-secondary); margin:0 0 18px;
+}
+#accessGate input[type="password"]{
+  width:100%; padding:10px 12px; border:1px solid var(--border-strong);
+  border-radius:var(--radius-sm); font-size:14px; margin-bottom:10px;
+  background:var(--surface);
+}
+#accessGate button{
+  width:100%; padding:10px 12px; border:none; border-radius:var(--radius-sm);
+  background:var(--accent); color:#fff; font-weight:600; font-size:14px;
+}
+#accessGate button:hover{ background:var(--accent-strong); }
+#accessGate .gate-error{
+  color:var(--danger); font-size:12.5px; margin-top:10px; display:none;
+}
+#app{ display:none; }
 </style>
 </head>
 <body>
+<div id="accessGate">
+  <div class="gate-card">
+    <div class="mark">UIIO</div>
+    <h2>Acceso restringido</h2>
+    <p>Ingresa la clave para ver el Dashboard de Entregas.</p>
+    <input type="password" id="gatePasswordInput" placeholder="Clave de acceso" autofocus>
+    <button id="gateUnlockBtn">Entrar</button>
+    <div class="gate-error" id="gateError">Clave incorrecta.</div>
+  </div>
+</div>
 <div id="app">
 
   <div class="topbar">
@@ -1234,6 +1291,51 @@ document.getElementById('btnResetConfig').onclick = () => {
   document.getElementById('metaDiasHabiles').textContent = Config.requiredBusinessDays;
   scheduleAutoRefresh();
   loadData(true);
+})();
+</script>
+<script>
+// ============================================================
+// Pantalla de acceso al dashboard completo.
+// Nota: esto es una barrera del lado del cliente (disuade acceso
+// casual), no seguridad real — cualquiera con conocimientos técnicos
+// podría ver la clave en el código fuente de esta página.
+// ============================================================
+const DASHBOARD_ACCESS_KEY = 'Zt5!Um4[x|7V$79O';
+const GATE_SESSION_FLAG = 'uiio_dashboard_unlocked';
+
+(function initAccessGate(){
+  const gate = document.getElementById('accessGate');
+  const app = document.getElementById('app');
+  const input = document.getElementById('gatePasswordInput');
+  const btn = document.getElementById('gateUnlockBtn');
+  const err = document.getElementById('gateError');
+
+  function unlock(){
+    gate.style.display = 'none';
+    app.style.display = 'block';
+  }
+
+  // Si ya se desbloqueó antes en esta pestaña/sesión, no volver a pedir la clave.
+  if (sessionStorage.getItem(GATE_SESSION_FLAG) === '1') {
+    unlock();
+    return;
+  }
+
+  btn.onclick = () => {
+    if (input.value === DASHBOARD_ACCESS_KEY) {
+      sessionStorage.setItem(GATE_SESSION_FLAG, '1');
+      err.style.display = 'none';
+      unlock();
+    } else {
+      err.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btn.click();
+  });
 })();
 </script>
 </body>
